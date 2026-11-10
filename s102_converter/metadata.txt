@@ -1,0 +1,14 @@
+[general]
+name=S-102 Converter
+description=Convert a bathymetric GeoTIFF or gridded XYZ to IHO S-102 Edition 3.0.0 (HDF5)
+about=Writes an S-102 dataset with the GDAL S102 driver (GDAL 3.13 or newer) and checks the result. Runs as a Processing algorithm.
+version=0.1.0
+qgisMinimumVersion=3.40
+qgisMaximumVersion=4.99
+author=Sergey Bakhmutov
+email=TODO
+repository=TODO
+hasProcessingProvider=yes
+experimental=True
+category=Raster
+tags=s-102,s-100,iho,bathymetry,hdf5
