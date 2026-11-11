@@ -3,8 +3,6 @@ import re
 import numpy as np
 from osgeo import osr
 
-osr.UseExceptions()
-
 SEPARATOR_RE = re.compile(r'[,;\s]+')
 # the whole bounding grid is kept in memory, longer strips need tiling
 MAX_CELLS = 50_000_000

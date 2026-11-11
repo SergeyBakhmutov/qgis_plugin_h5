@@ -1,5 +1,4 @@
 from osgeo import gdal
-gdal.UseExceptions()
 
 
 def read_tiff(path):

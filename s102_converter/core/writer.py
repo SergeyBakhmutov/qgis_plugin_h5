@@ -2,8 +2,6 @@ import os
 from osgeo import gdal, osr
 from .prepare import FILL_VALUE
 
-gdal.UseExceptions()
-
 QUALITY_DIR = '/vsimem/s102conv'
 QUALITY_PATH = f'{QUALITY_DIR}/quality.tif'
 # driver casts columns to Table 10-8 types by name
