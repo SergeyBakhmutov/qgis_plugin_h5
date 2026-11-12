@@ -17,6 +17,7 @@ from .codes import VERTICAL_DATUMS, code_options
 from .core.config import apply_defaults
 from .core.converter import convert
 from .core.writer import make_filename
+from .quality import add_quality_parameters, read_quality
 
 DATUM_CODES = list(VERTICAL_DATUMS)
 INPUT_VALUE_OPTIONS = ['auto', 'depth', 'elevation']
@@ -77,6 +78,7 @@ class GeoTiffToS102(QgsProcessingAlgorithm):
                 (self.VERTICAL_UNCERTAINTY, 'Погрешность по глубине, м (-1 = неизв.)')):
             self.addParameter(QgsProcessingParameterNumber(
                 name, label, type=Qgis.ProcessingNumberParameterType.Double, defaultValue=-1))
+        add_quality_parameters(self)
         self.addParameter(QgsProcessingParameterFolderDestination(
             self.OUTPUT_DIR, 'Папка вывода'))
         self.addOutput(QgsProcessingOutputFile(self.OUTPUT, 'Файл S-102'))
@@ -99,6 +101,9 @@ class GeoTiffToS102(QgsProcessingAlgorithm):
         issue_time = self.parameterAsString(parameters, self.ISSUE_TIME, context).strip()
         if issue_time:
             raw['issue_time'] = issue_time
+        quality = read_quality(self, parameters, context)
+        if quality is not None:
+            raw['quality'] = quality
         settings = apply_defaults(raw)
         output_dir = self.parameterAsFileOutput(parameters, self.OUTPUT_DIR, context)
 
