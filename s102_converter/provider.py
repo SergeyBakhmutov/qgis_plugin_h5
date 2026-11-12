@@ -1,5 +1,7 @@
 from qgis.core import QgsProcessingProvider
 
+from .geotiff_algorithm import GeoTiffToS102
+
 
 class S102Provider(QgsProcessingProvider):
     """Processing provider for the S-102 algorithms"""
@@ -12,5 +14,4 @@ class S102Provider(QgsProcessingProvider):
         return 'S-102'
 
     def loadAlgorithms(self):
-        # algorithms are added in the next steps
-        pass
+        self.addAlgorithm(GeoTiffToS102())
