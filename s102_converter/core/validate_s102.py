@@ -38,7 +38,7 @@ import numpy as np
 try:
     from osgeo import osr
 
-    osr.UseExceptions()
+    # exceptions are enabled by the caller, see core/__init__.py
     gdal_available = True
 except ImportError:
     gdal_available = False
