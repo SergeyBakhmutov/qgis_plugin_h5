@@ -1,6 +1,7 @@
 from qgis.core import QgsProcessingProvider
 
 from .geotiff_algorithm import GeoTiffToS102
+from .xyz_algorithm import XyzToS102
 
 
 class S102Provider(QgsProcessingProvider):
@@ -15,3 +16,4 @@ class S102Provider(QgsProcessingProvider):
 
     def loadAlgorithms(self):
         self.addAlgorithm(GeoTiffToS102())
+        self.addAlgorithm(XyzToS102())

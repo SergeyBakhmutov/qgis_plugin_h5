@@ -17,6 +17,16 @@ VERTICAL_DATUMS = {
     44: 'balticSeaChartDatum2000',
 }
 
+# grid CRS allowed by S-102 Table 5-1
+GRID_CRS = {
+    4326: 'WGS 84',
+    **{32600 + zone: f'WGS 84 / UTM zone {zone}N' for zone in range(1, 61)},
+    **{32700 + zone: f'WGS 84 / UTM zone {zone}S' for zone in range(1, 61)},
+    5041: 'WGS 84 / UPS North (E,N)',
+    5042: 'WGS 84 / UPS South (E,N)',
+}
+XYZ_COLUMNS = {'широта, долгота, глубина': 'lat_lon', 'долгота, широта, глубина': 'lon_lat'}
+
 YES_NO = {1: 'да', 0: 'нет'}
 # labels and code names for the featureAttributeTable (S-102 Table 10-8, 10-9)
 QUALITY_FORM = (
