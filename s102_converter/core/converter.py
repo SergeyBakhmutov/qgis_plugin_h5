@@ -11,6 +11,18 @@ from .writer import make_dataset, write_s102
 from .xyz import load_xyz
 
 
+def run_validator(path):
+    """Return errors and warnings of validate_s102 for the written file"""
+    try:
+        from .validate_s102 import check
+    except ImportError:
+        # h5py is not bundled with QGIS, the file is still written
+        return [], ['проверка validate_s102 пропущена: модуль h5py не установлен или не загружается']
+    errors, warnings, _ = check(path)
+    errors = [text for level, text in errors]
+    return errors, warnings
+
+
 def tiff_grid(info):
     """Return the grid of a checked GeoTIFF with its EPSG code"""
     points = grid_points(info['geotransform'], info['width'], info['height'])
@@ -21,7 +33,7 @@ def tiff_grid(info):
 
 
 def convert(input_path, settings, output_dir, settings_name='настройки'):
-    """Check settings and input, write S-102 and check the written file.
+    """Check settings and input, write S-102 and validate it.
 
     Return a summary line (None on failure) and a list of
     (source, errors, warnings) records in the order of checks.
@@ -74,6 +86,7 @@ def _convert(input_path, settings, output_dir, settings_name):
         path = write_s102(ds, settings, output_dir)
 
         ok = stage(path, *check_output(path))
+        ok = stage(path, *run_validator(path)) and ok
     finally:
         gdal.PopErrorHandler()
         if gdal_warnings:
