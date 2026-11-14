@@ -12,7 +12,7 @@ def check_input(info):
     valid_count = mask_nodata(info['data'], info['nodata']).count()
     # depth only, uncertainty is optional (S-102 4.4.2.1)
     if info['band_count'] != 1:
-        errors.append(f'Каналов {info['band_count']}, а нужен 1 (глубина). '
+        errors.append(f'Каналов {info["band_count"]}, а нужен 1 (глубина). '
                       'Неопределённость не поддерживается')
     if (info['geotransform'][2]) != 0.0 or info['geotransform'][4] != 0:
         errors.append(

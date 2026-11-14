@@ -162,7 +162,7 @@ def check_xyz(xyz):
         if key not in XYZ_KEYS:
             errors.append(f'xyz.{key}: неизвестный параметр')
     if xyz['columns'] not in XYZ_COLUMNS:
-        errors.append(f'xyz.columns = {xyz['columns']!r}: допустимо lat_lon или lon_lat')
+        errors.append(f'xyz.columns = {xyz["columns"]!r}: допустимо lat_lon или lon_lat')
 
     epsg = xyz.get('grid_epsg')
     if epsg is None:
@@ -197,15 +197,15 @@ def check_settings(settings):
     warnings = []
 
     if settings['input_values'] not in ('auto', 'depth', 'elevation'):
-        errors.append(f'input_values = {settings['input_values']!r}: допустимо auto, depth или elevation')
+        errors.append(f'input_values = {settings["input_values"]!r}: допустимо auto, depth или elevation')
     if settings['units'] != 'metres':
-        errors.append(f'units = {settings['units']!r}: поддерживаются только metres')
+        errors.append(f'units = {settings["units"]!r}: поддерживаются только metres')
     if 'vertical_datum' not in settings:
         errors.append('укажите обязательное значение vertical_datum')
     elif not isinstance(settings['vertical_datum'], int):
-        errors.append(f'vertical_datum = {settings['vertical_datum']!r}: введите целочисленное значение')
+        errors.append(f'vertical_datum = {settings["vertical_datum"]!r}: введите целочисленное значение')
     elif not (1 <= settings['vertical_datum'] <= 30 or settings['vertical_datum'] == 44):
-        errors.append(f'vertical_datum = {settings['vertical_datum']}: допустимы 1–30 или 44')
+        errors.append(f'vertical_datum = {settings["vertical_datum"]}: допустимы 1–30 или 44')
 
     for key in ('horizontal_position_uncertainty', 'vertical_uncertainty'):
         value = settings[key]
@@ -216,14 +216,14 @@ def check_settings(settings):
     elif not isinstance(settings['producer_code'], str):
         errors.append('producer_code должен быть строкой')
     elif not re.fullmatch(PRODUCER_CODE_RE, settings['producer_code']):
-        errors.append(f'producer_code = {settings['producer_code']!r}: нужно ровно 4 символа A–Z, 0–9')
+        errors.append(f'producer_code = {settings["producer_code"]!r}: нужно ровно 4 символа A–Z, 0–9')
 
     if 'dataset_name' not in settings:
         errors.append('dataset_name обязательное поле')
     elif not isinstance(settings['dataset_name'], str):
         errors.append('dataset_name должен быть строкой')
     elif not re.fullmatch(DATASET_NAME_RE, settings['dataset_name']):
-        errors.append(f'dataset_name = {settings['dataset_name']!r}: от 1 до 12 символов A–Z, 0–9 и _')
+        errors.append(f'dataset_name = {settings["dataset_name"]!r}: от 1 до 12 символов A–Z, 0–9 и _')
     for key in settings:
         if key not in KNOWN_KEYS:
             warnings.append(f'Поле {key!r}. Возможна опечатка в названии')
@@ -237,7 +237,7 @@ def check_settings(settings):
             errors.append(f'issue_date = {issue_date!r}: такой даты не существует')
 
     if 'issue_time' in settings and not re.fullmatch(ISSUE_TIME_RE, str(settings['issue_time'])):
-        errors.append(f'issue_time = {settings['issue_time']!r}: нужно ччммссZ (UTC)')
+        errors.append(f'issue_time = {settings["issue_time"]!r}: нужно ччммссZ (UTC)')
 
     errors.extend(check_quality(settings['quality']))
     if 'xyz' in settings:

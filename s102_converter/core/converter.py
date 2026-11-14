@@ -95,5 +95,5 @@ def _convert(input_path, settings, output_dir, settings_name):
     if not ok:
         return None, log
     sign = 'инвертирован' if flip else 'без изменений'
-    note = f', {grid['note']}' if grid['note'] else ''
+    note = f', {grid["note"]}' if grid['note'] else ''
     return f'Записан {path} (EPSG:{epsg}, знак {sign}{note})', log

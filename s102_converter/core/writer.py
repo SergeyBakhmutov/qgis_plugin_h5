@@ -31,18 +31,18 @@ def make_dataset(depths, geotransform, epsg):
 
 def make_creation_options(settings):
     options = [
-        f'VERTICAL_DATUM={settings['vertical_datum']}',
-        f'ISSUE_DATE={settings['issue_date']}',
-        f'HORIZONTAL_POSITION_UNCERTAINTY={settings['horizontal_position_uncertainty']}',
-        f'VERTICAL_UNCERTAINTY={settings['vertical_uncertainty']}',
+        f'VERTICAL_DATUM={settings["vertical_datum"]}',
+        f'ISSUE_DATE={settings["issue_date"]}',
+        f'HORIZONTAL_POSITION_UNCERTAINTY={settings["horizontal_position_uncertainty"]}',
+        f'VERTICAL_UNCERTAINTY={settings["vertical_uncertainty"]}',
     ]
     if 'issue_time' in settings:
-        options.append(f'ISSUE_TIME={settings['issue_time']}')
+        options.append(f'ISSUE_TIME={settings["issue_time"]}')
     return options
 
 
 def make_filename(settings):
-    return f'102{settings['producer_code']}{settings['dataset_name']}.H5'
+    return f'102{settings["producer_code"]}{settings["dataset_name"]}.H5'
 
 
 def make_quality_dataset(ds, quality):
