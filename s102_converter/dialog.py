@@ -1,6 +1,8 @@
+import html
 import os
 from datetime import date
 
+from qgis.core import QgsApplication, QgsTask
 from qgis.gui import QgsFileWidget
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -12,12 +14,17 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
     QRadioButton,
     QVBoxLayout,
     QWidget,
 )
 
 from .codes import GRID_CRS, QUALITY_FORM, VERTICAL_DATUMS, XYZ_COLUMNS, choices
+from .core.config import QUALITY_FIELDS, apply_defaults, check_settings
+from .core.converter import convert
+from .core.writer import make_filename
 
 INPUT_FILTERS = {
     'tiff': 'GeoTIFF (*.tif *.tiff);;Все файлы (*)',
@@ -30,6 +37,19 @@ FILE_CRS = '4326 — WGS 84, градусы'
 
 def parse_code(text):
     return int(text.split(' — ')[0]) if text else None
+
+
+def parse_number(text):
+    return float(text.strip().replace(',', '.'))
+
+
+def field_text(widget):
+    return widget.currentText() if isinstance(widget, QComboBox) else widget.text()
+
+
+def run_convert(task, input_path, settings, output_dir):
+    """Run convert() in a QGIS background task, the task argument is unused"""
+    return convert(input_path, settings, output_dir)
 
 
 def make_field(values=None, default=''):
@@ -52,12 +72,30 @@ class ConverterDialog(QDialog):
         self.formats = {}
         self.fields = {}
         self.quality_fields = {}
+        self.task = None
 
         layout = QGridLayout(self)
         layout.addWidget(self.build_files(), 0, 0, 1, 2)
         layout.addWidget(self.build_metadata(), 1, 0)
         layout.addWidget(self.build_xyz(), 2, 0)
         layout.addWidget(self.build_quality(), 1, 1, 2, 1)
+
+        buttons = QHBoxLayout()
+        self.convert_button = QPushButton('Конвертировать')
+        self.convert_button.clicked.connect(self.run)
+        buttons.addWidget(self.convert_button)
+        self.filename = QLabel()
+        buttons.addWidget(self.filename)
+        buttons.addStretch()
+        layout.addLayout(buttons, 3, 0, 1, 2)
+
+        self.log = QPlainTextEdit()
+        self.log.setReadOnly(True)
+        layout.addWidget(self.log, 4, 0, 1, 2)
+
+        for name in ('producer_code', 'dataset_name'):
+            self.fields[name].textChanged.connect(self.update_filename)
+        self.update_filename()
         self.toggle_xyz()
         self.toggle_quality()
 
@@ -186,3 +224,112 @@ class ConverterDialog(QDialog):
         ext = os.path.splitext(path)[1].lower()
         if ext in INPUT_EXTENSIONS:
             self.formats[INPUT_EXTENSIONS[ext]].setChecked(True)
+
+    def update_filename(self):
+        names = {name: field_text(self.fields[name]).strip() for name in ('producer_code', 'dataset_name')}
+        self.filename.setText(f'Имя файла: {make_filename(names)}')
+
+    def collect(self):
+        """Return raw settings as read from YAML and form errors"""
+        get = {name: field_text(widget).strip() for name, widget in self.fields.items()}
+        raw = {
+            'input_values': get['input_values'],
+            'producer_code': get['producer_code'],
+            'dataset_name': get['dataset_name'],
+            'issue_date': get['issue_date'],
+        }
+        errors = []
+        datum = parse_code(get['vertical_datum'])
+        if datum is not None:
+            raw['vertical_datum'] = datum
+        if get['issue_time']:
+            raw['issue_time'] = get['issue_time']
+        for name in ('horizontal_position_uncertainty', 'vertical_uncertainty'):
+            try:
+                raw[name] = parse_number(get[name])
+            except ValueError:
+                errors.append(f'{name} = {get[name]!r}: нужно число')
+
+        if self.write_quality.isChecked():
+            quality = {}
+            for key, widget in self.quality_fields.items():
+                text = field_text(widget).strip()
+                if not text:
+                    continue
+                kind = QUALITY_FIELDS[key]
+                if isinstance(kind, tuple):
+                    quality[key] = parse_code(text)
+                elif kind == 'real':
+                    try:
+                        quality[key] = parse_number(text)
+                    except ValueError:
+                        errors.append(f'quality.{key} = {text!r}: нужно число')
+                else:
+                    quality[key] = text
+            raw['quality'] = quality
+
+        if self.input_type() == 'xyz':
+            xyz = {'columns': XYZ_COLUMNS[get['columns']]}
+            epsg = parse_code(get['grid_epsg'])
+            if epsg is not None:
+                xyz['grid_epsg'] = epsg
+            # empty step_y falls back to step_x in apply_defaults
+            for name in ('step_x', 'step_y', 'tolerance'):
+                if not get[name]:
+                    continue
+                try:
+                    xyz[name] = parse_number(get[name])
+                except ValueError:
+                    errors.append(f'xyz.{name} = {get[name]!r}: нужно число')
+            raw['xyz'] = xyz
+        return raw, errors
+
+    def write_log(self, text, error=False):
+        text = html.escape(text)
+        self.log.appendHtml(f'<span style="color:red">{text}</span>' if error else text)
+
+    def run(self):
+        self.log.clear()
+
+        raw, errors = self.collect()
+        input_path = self.input.filePath().strip()
+        output_dir = self.output_dir.filePath().strip()
+        if not output_dir:
+            errors.insert(0, 'не выбрана папка вывода')
+        if not input_path:
+            errors.insert(0, 'не выбран входной файл')
+        settings = apply_defaults(raw)
+        if errors:
+            # show the rest of the settings errors at once
+            errors.extend(check_settings(settings)[0])
+            for e in errors:
+                self.write_log(f'ошибка: {e}', error=True)
+            return
+
+        self.convert_button.setEnabled(False)
+        self.write_log('Конвертация…')
+        # QGIS stays responsive while the file is written
+        self.task = QgsTask.fromFunction('S-102 Converter', run_convert, input_path, settings,
+                                         output_dir, on_finished=self.on_finished)
+        QgsApplication.taskManager().addTask(self.task)
+
+    def on_finished(self, exception, result=None):
+        """Show the conversion log, called in the main thread when the task ends"""
+        self.task = None
+        self.convert_button.setEnabled(True)
+        if exception is not None:
+            summary, log = None, [('', [f'{type(exception).__name__}: {exception}'], [])]
+        else:
+            summary, log = result
+
+        for source, errors, warnings in log:
+            prefix = f'{source}: ' if source else ''
+            for w in warnings:
+                self.write_log(f'{prefix}предупреждение: {w}')
+            for e in errors:
+                self.write_log(f'{prefix}ошибка: {e}', error=True)
+        if summary:
+            self.write_log(summary)
+            self.write_log('Проверка пройдена, ошибок нет')
+        else:
+            self.write_log('Файл не создан или не прошёл проверку', error=True)
