@@ -1,14 +1,20 @@
 import os
+from datetime import date
 
 from qgis.gui import QgsFileWidget
 from qgis.PyQt.QtWidgets import (
+    QComboBox,
     QDialog,
+    QFormLayout,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QRadioButton,
 )
+
+from .codes import VERTICAL_DATUMS, choices
 
 INPUT_FILTERS = {
     'tiff': 'GeoTIFF (*.tif *.tiff);;Все файлы (*)',
@@ -25,9 +31,11 @@ class ConverterDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle('S-102 Converter')
         self.formats = {}
+        self.fields = {}
 
         layout = QGridLayout(self)
         layout.addWidget(self.build_files(), 0, 0, 1, 2)
+        layout.addWidget(self.build_metadata(), 1, 0)
 
     def build_files(self):
         group = QGroupBox('Файлы')
@@ -56,6 +64,36 @@ class ConverterDialog(QDialog):
             grid.addWidget(QLabel(label), row, 0)
             grid.addWidget(widget, row, 1)
         return group
+
+    def build_metadata(self):
+        group = QGroupBox('Данные файла')
+        form = QFormLayout(group)
+        rows = (
+            ('vertical_datum', 'Вертикальный датум *', choices(VERTICAL_DATUMS), ''),
+            ('producer_code', 'Код производителя *', None, ''),
+            ('dataset_name', 'Название набора *', None, ''),
+            ('issue_date', 'Дата выпуска (ГГГГММДД) *', None, date.today().strftime('%Y%m%d')),
+            ('issue_time', 'Время выпуска (ччммссZ)', None, ''),
+            ('input_values', 'Значения во входном файле',
+             ['auto', 'depth', 'elevation'], 'auto'),
+            ('horizontal_position_uncertainty', 'Погрешность в плане, м (-1 = неизв.)', None, '-1'),
+            ('vertical_uncertainty', 'Погрешность по глубине, м (-1 = неизв.)', None, '-1'),
+        )
+        for name, label, values, default in rows:
+            form.addRow(label, self.add_field(name, values, default))
+        form.addRow(QLabel('* обязательные поля'))
+        return group
+
+    def add_field(self, name, values=None, default=''):
+        """Create a combo box with values or a line edit, keep it by name"""
+        if values:
+            widget = QComboBox()
+            widget.addItems(values)
+            widget.setCurrentText(default)
+        else:
+            widget = QLineEdit(default)
+        self.fields[name] = widget
+        return widget
 
     def input_type(self):
         return 'xyz' if self.formats['xyz'].isChecked() else 'tiff'

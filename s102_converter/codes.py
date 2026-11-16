@@ -55,3 +55,8 @@ QUALITY_FORM = (
 def code_options(codes):
     """Return enum labels 'code — name' in the order of codes"""
     return [f'{code} — {name}' for code, name in codes.items()]
+
+
+def choices(codes):
+    """Return combo box items: empty first, then 'code — name' (as in gui.py)"""
+    return [''] + code_options(codes)
