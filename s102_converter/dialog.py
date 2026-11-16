@@ -14,7 +14,7 @@ from qgis.PyQt.QtWidgets import (
     QRadioButton,
 )
 
-from .codes import VERTICAL_DATUMS, choices
+from .codes import GRID_CRS, VERTICAL_DATUMS, XYZ_COLUMNS, choices
 
 INPUT_FILTERS = {
     'tiff': 'GeoTIFF (*.tif *.tiff);;Все файлы (*)',
@@ -22,6 +22,11 @@ INPUT_FILTERS = {
 }
 # the format follows the extension of the chosen file
 INPUT_EXTENSIONS = {'.tif': 'tiff', '.tiff': 'tiff', '.xyz': 'xyz', '.txt': 'xyz', '.csv': 'xyz'}
+FILE_CRS = '4326 — WGS 84, градусы'
+
+
+def parse_code(text):
+    return int(text.split(' — ')[0]) if text else None
 
 
 class ConverterDialog(QDialog):
@@ -36,6 +41,8 @@ class ConverterDialog(QDialog):
         layout = QGridLayout(self)
         layout.addWidget(self.build_files(), 0, 0, 1, 2)
         layout.addWidget(self.build_metadata(), 1, 0)
+        layout.addWidget(self.build_xyz(), 2, 0)
+        self.toggle_xyz()
 
     def build_files(self):
         group = QGroupBox('Файлы')
@@ -52,12 +59,14 @@ class ConverterDialog(QDialog):
         for value, text in (('tiff', 'GeoTIFF'), ('xyz', 'XYZ')):
             # radio buttons with the same parent are exclusive
             button = QRadioButton(text)
-            button.toggled.connect(self.toggle_xyz)
             formats.addWidget(button)
             self.formats[value] = button
         formats.addStretch()
         grid.addLayout(formats, 0, 1)
         self.formats['tiff'].setChecked(True)
+        # connected after the default is set, the XYZ group does not exist yet
+        for button in self.formats.values():
+            button.toggled.connect(self.toggle_xyz)
 
         for row, (label, widget) in enumerate(
                 (('Входной файл', self.input), ('Папка вывода', self.output_dir)), start=1):
@@ -84,6 +93,36 @@ class ConverterDialog(QDialog):
         form.addRow(QLabel('* обязательные поля'))
         return group
 
+    def build_xyz(self):
+        self.xyz_group = QGroupBox('Параметры XYZ')
+        form = QFormLayout(self.xyz_group)
+
+        # points are always read as WGS 84 degrees
+        file_crs = QComboBox()
+        file_crs.addItem(FILE_CRS)
+        file_crs.setEnabled(False)
+        form.addRow('Система координат файла', file_crs)
+        form.addRow('Порядок колонок',
+                    self.add_field('columns', list(XYZ_COLUMNS), next(iter(XYZ_COLUMNS))))
+        form.addRow('Система координат сетки *', self.add_field('grid_epsg', choices(GRID_CRS)))
+        self.fields['grid_epsg'].currentTextChanged.connect(self.update_units)
+
+        self.unit_labels = []
+        rows = (
+            ('step_x', 'Шаг по X *'),
+            ('step_y', 'Шаг по Y (пусто = как по X)'),
+            ('tolerance', 'Допуск до узла *'),
+        )
+        for name, label in rows:
+            row = QHBoxLayout()
+            row.addWidget(self.add_field(name))
+            unit = QLabel()
+            unit.setMinimumWidth(16)
+            row.addWidget(unit)
+            self.unit_labels.append(unit)
+            form.addRow(label, row)
+        return self.xyz_group
+
     def add_field(self, name, values=None, default=''):
         """Create a combo box with values or a line edit, keep it by name"""
         if values:
@@ -100,6 +139,14 @@ class ConverterDialog(QDialog):
 
     def toggle_xyz(self):
         self.input.setFilter(INPUT_FILTERS[self.input_type()])
+        self.xyz_group.setEnabled(self.input_type() == 'xyz')
+
+    def update_units(self):
+        # steps are in the units of the grid CRS (S-102 Table 10-6)
+        epsg = parse_code(self.fields['grid_epsg'].currentText())
+        unit = '' if epsg is None else '°' if epsg == 4326 else 'м'
+        for label in self.unit_labels:
+            label.setText(unit)
 
     def on_input_changed(self, path):
         """Switch the format by the extension of the chosen file"""
