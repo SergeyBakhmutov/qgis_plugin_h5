@@ -2,7 +2,7 @@ import html
 import os
 from datetime import date
 
-from qgis.core import QgsApplication, QgsTask
+from qgis.core import QgsApplication, QgsProject, QgsRasterLayer, QgsTask
 from qgis.gui import QgsFileWidget
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
@@ -73,6 +73,7 @@ class ConverterDialog(QDialog):
         self.fields = {}
         self.quality_fields = {}
         self.task = None
+        self.output_path = None
 
         layout = QGridLayout(self)
         layout.addWidget(self.build_files(), 0, 0, 1, 2)
@@ -84,6 +85,10 @@ class ConverterDialog(QDialog):
         self.convert_button = QPushButton('Конвертировать')
         self.convert_button.clicked.connect(self.run)
         buttons.addWidget(self.convert_button)
+        self.open_button = QPushButton('Открыть в QGIS')
+        self.open_button.setEnabled(False)
+        self.open_button.clicked.connect(self.open_result)
+        buttons.addWidget(self.open_button)
         self.filename = QLabel()
         buttons.addWidget(self.filename)
         buttons.addStretch()
@@ -306,7 +311,9 @@ class ConverterDialog(QDialog):
                 self.write_log(f'ошибка: {e}', error=True)
             return
 
+        self.output_path = os.path.join(output_dir, make_filename(settings))
         self.convert_button.setEnabled(False)
+        self.open_button.setEnabled(False)
         self.write_log('Конвертация…')
         # QGIS stays responsive while the file is written
         self.task = QgsTask.fromFunction('S-102 Converter', run_convert, input_path, settings,
@@ -331,5 +338,15 @@ class ConverterDialog(QDialog):
         if summary:
             self.write_log(summary)
             self.write_log('Проверка пройдена, ошибок нет')
+            self.open_button.setEnabled(True)
         else:
             self.write_log('Файл не создан или не прошёл проверку', error=True)
+
+    def open_result(self):
+        """Add the written S-102 file to the current project"""
+        name = os.path.splitext(os.path.basename(self.output_path))[0]
+        layer = QgsRasterLayer(self.output_path, name, 'gdal')
+        if not layer.isValid():
+            self.write_log(f'ошибка: {self.output_path}: QGIS не открыл файл', error=True)
+            return
+        QgsProject.instance().addMapLayer(layer)
