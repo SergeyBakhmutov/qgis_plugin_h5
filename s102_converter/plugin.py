@@ -1,11 +1,15 @@
+import os
+
 try:
     from qgis.PyQt.QtGui import QAction  # Qt6, QGIS 4
 except ImportError:
     from qgis.PyQt.QtWidgets import QAction  # Qt5, QGIS 3
+from qgis.PyQt.QtGui import QIcon
 
 from .dialog import ConverterDialog
 
 MENU = 'S-102 Converter'
+ICON = os.path.join(os.path.dirname(__file__), 'icon.svg')
 
 
 class S102ConverterPlugin:
@@ -17,7 +21,7 @@ class S102ConverterPlugin:
         self.dialog = None
 
     def initGui(self):
-        self.action = QAction(MENU, self.iface.mainWindow())
+        self.action = QAction(QIcon(ICON), MENU, self.iface.mainWindow())
         self.action.triggered.connect(self.open_dialog)
         self.iface.addPluginToMenu(MENU, self.action)
 

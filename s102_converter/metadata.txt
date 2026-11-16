@@ -9,5 +9,6 @@ author=Sergey Bakhmutov
 email=s.bakhmutov@gmail.com
 repository=https://github.com/SergeyBakhmutov/qgis_plugin_h5
 experimental=False
+icon=icon.svg
 category=Raster
 tags=s-102,s-100,iho,bathymetry,hdf5
