@@ -19,8 +19,8 @@ PYTHONHOME=$R PYTHONPATH=$R:$R/site-packages:$R/lib-dynload \
   /Applications/QGIS.app/Contents/MacOS/python3.12 -m pip install --user h5py
 ```
 
-It loads only inside the QGIS application; `qgis_process` and the bundled
-`python3.12` reject it because of macOS library validation.
+It loads only inside the QGIS application; the bundled `python3.12` rejects it
+because of macOS library validation.
 
 ## Installation
 
@@ -35,21 +35,13 @@ Then enable "S-102 Converter" in Plugins > Manage and Install Plugins.
 
 ## Usage
 
-Processing Toolbox > S-102:
-
-- `GeoTIFF` (`s102converter:geotiff_to_s102`)
-- `XYZ` (`s102converter:xyz_to_s102`)
+Plugins > S-102 Converter opens the conversion form, the same as gui.py of
+s102_f_conv. The XYZ fields are enabled with the XYZ format, the quality fields
+with "Добавить таблицу".
 
 Output name is `102<producer_code><dataset_name>.H5` in the chosen folder, an
-existing file is overwritten. The run fails on any error in parameters, input
-or the written file; errors and warnings are shown in the log.
-
-From the command line (enum parameters take the option index):
-
-```
-qgis_process run s102converter:geotiff_to_s102 -- INPUT=input.tif \
-  VERTICAL_DATUM=22 PRODUCER_CODE=TEST DATASET_NAME=AREA_1 OUTPUT_DIR=output
-```
+existing file is overwritten. The conversion runs in the background; errors in
+the form, input or the written file are shown in the log.
 
 ## Input
 
@@ -68,18 +60,14 @@ XYZ input:
 
 ## Quality
 
-With "Add QualityOfBathymetryCoverage table" switched on, the filled fields of
-the advanced group are written as a single record (`id = 1`) for all cells with
-depth. Fields are checked against S-102 Table 10-8; empty fields are skipped.
+With "Добавить таблицу" switched on, the filled quality fields are written as
+a single record (`id = 1`) for all cells with depth. Fields are checked against S-102 Table 10-8; empty fields are skipped.
 
 ## Layout
 
-- `s102_converter/plugin.py` - registers the Processing provider
-- `s102_converter/provider.py` - Processing provider
-- `s102_converter/base_algorithm.py` - dataset fields and conversion run
-- `s102_converter/geotiff_algorithm.py`, `xyz_algorithm.py` - input algorithms
-- `s102_converter/quality.py` - quality table fields
-- `s102_converter/codes.py` - code lists for the enum fields
+- `s102_converter/plugin.py` - Plugins menu entry
+- `s102_converter/dialog.py` - conversion form
+- `s102_converter/codes.py` - code lists for the combo boxes
 - `s102_converter/core/` - conversion from s102_f_conv: settings checks,
   reading, gridding, CRS detection, writing and the validator
 
